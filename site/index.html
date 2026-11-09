@@ -1,0 +1,336 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Radar DJEN Oquendo</title>
+<meta name="robots" content="noindex">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: barra de filtros no topo, resumo por advogado, lista de comunicações expansíveis. */
+:root {
+  --bg: #f4f5f2; --surface: #ffffff; --surface-2: #eceeea; --fg: #1b2420; --fg-muted: #5c6862; --line: #d6dad4;
+  --accent: #0f5f5c; --accent-fg: #ffffff;
+  --adv-1: #0f5f5c; --adv-2: #7a3e9d; --adv-3: #b4550f; --ok: #2a7a3f; --warn: #a8641a; --err: #a93a2e;
+  --font-body: "Source Sans 3", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #141917; --surface: #1d2321; --surface-2: #252d2a; --fg: #e7ebe8; --fg-muted: #9aa69f; --line: #333c38;
+    --accent: #4fb8b2; --accent-fg: #0d1715;
+    --adv-1: #4fb8b2; --adv-2: #c08ae0; --adv-3: #e89b5a; --ok: #6fc485; --warn: #e0a85a; --err: #e4756a;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #141917; --surface: #1d2321; --surface-2: #252d2a; --fg: #e7ebe8; --fg-muted: #9aa69f; --line: #333c38;
+  --accent: #4fb8b2; --accent-fg: #0d1715;
+  --adv-1: #4fb8b2; --adv-2: #c08ae0; --adv-3: #e89b5a; --ok: #6fc485; --warn: #e0a85a; --err: #e4756a;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--bg); color: var(--fg); font-family: var(--font-body); font-size: 15px; line-height: 1.45; }
+.wrap { max-width: 1180px; margin: 0 auto; padding-block: 20px 48px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+h1 { font-size: 1.5rem; font-weight: 700; margin: 0; letter-spacing: -0.01em; text-wrap: balance; }
+.sub { color: var(--fg-muted); margin: 4px 0 0; font-size: 0.95rem; }
+header { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 12px; margin-bottom: 18px; }
+.eyebrow { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--fg-muted); font-weight: 600; }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 16px; display: grid; gap: 14px; }
+.row { display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: flex-end; }
+.field { display: grid; gap: 4px; min-width: 0; }
+.field label { font-size: 0.78rem; color: var(--fg-muted); font-weight: 600; }
+input[type="date"], input[type="search"], select { font: inherit; color: var(--fg); background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 7px 10px; min-width: 0; }
+input:focus-visible, select:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.advs { display: flex; flex-wrap: wrap; gap: 8px; }
+.adv { display: inline-flex; align-items: center; gap: 8px; border: 1px solid var(--line); border-radius: 999px; padding: 6px 12px 6px 8px; background: var(--surface); cursor: pointer; font: inherit; color: var(--fg); text-align: left; }
+.adv .dot { width: 12px; height: 12px; border-radius: 50%; background: var(--c); flex: none; border: 2px solid var(--c); }
+.adv[aria-pressed="false"] { color: var(--fg-muted); }
+.adv[aria-pressed="false"] .dot { background: transparent; }
+.adv .oab { font-family: var(--font-mono); font-size: 0.78rem; color: var(--fg-muted); }
+.actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+button.primary { font: inherit; font-weight: 600; background: var(--accent); color: var(--accent-fg); border: 0; border-radius: 6px; padding: 9px 16px; cursor: pointer; }
+button.ghost { font: inherit; background: transparent; color: var(--fg); border: 1px solid var(--line); border-radius: 6px; padding: 8px 12px; cursor: pointer; }
+button:disabled { opacity: 0.55; cursor: progress; }
+.quick { display: flex; gap: 6px; flex-wrap: wrap; }
+.quick button { font: inherit; font-size: 0.82rem; background: var(--surface-2); border: 0; border-radius: 999px; padding: 4px 10px; cursor: pointer; color: var(--fg); }
+.status { display: flex; gap: 10px; align-items: flex-start; font-size: 0.92rem; color: var(--fg-muted); min-height: 1.4em; }
+.status .pill { flex: none; width: 10px; height: 10px; border-radius: 50%; margin-top: 6px; background: var(--fg-muted); }
+.status.ok .pill { background: var(--ok); } .status.warn .pill { background: var(--warn); } .status.err .pill { background: var(--err); } .status.busy .pill { background: var(--warn); }
+.status a { color: var(--accent); }
+.status code { font-family: var(--font-mono); font-size: 0.85em; }
+.summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; margin: 18px 0; }
+.sum { border-left: 4px solid var(--c); background: var(--surface); border-radius: 6px; padding: 10px 14px; display: grid; gap: 2px; min-width: 0; }
+.sum .n { font-size: 1.6rem; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1.1; }
+.sum .name { font-weight: 600; font-size: 0.92rem; overflow-wrap: anywhere; }
+.sum .meta { color: var(--fg-muted); font-size: 0.8rem; font-family: var(--font-mono); }
+.toolbar { display: flex; flex-wrap: wrap; gap: 10px 16px; justify-content: space-between; align-items: center; margin: 6px 0 10px; color: var(--fg-muted); font-size: 0.9rem; }
+.list { display: grid; gap: 8px; }
+.item { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.item summary { list-style: none; cursor: pointer; display: grid; grid-template-columns: 110px 1fr auto; gap: 6px 14px; padding: 10px 14px; align-items: start; }
+.item summary::-webkit-details-marker { display: none; }
+.item summary:hover { background: var(--surface-2); }
+.when { font-family: var(--font-mono); font-size: 0.85rem; font-variant-numeric: tabular-nums; color: var(--fg-muted); display: grid; gap: 2px; }
+.when .trib { color: var(--fg); font-weight: 600; font-family: var(--font-body); }
+.main { min-width: 0; display: grid; gap: 3px; }
+.proc { font-family: var(--font-mono); font-size: 0.9rem; font-weight: 500; overflow-wrap: anywhere; }
+.tipo { font-weight: 600; }
+.orgao { color: var(--fg-muted); font-size: 0.88rem; overflow-wrap: anywhere; }
+.tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 2px; }
+.tag { font-size: 0.75rem; border-radius: 999px; padding: 1px 8px; background: color-mix(in srgb, var(--c) 14%, transparent); color: var(--c); border: 1px solid color-mix(in srgb, var(--c) 45%, transparent); font-weight: 600; }
+.new { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ok); font-weight: 700; align-self: start; white-space: nowrap; }
+.body { border-top: 1px solid var(--line); padding: 12px 14px 14px; display: grid; gap: 10px; }
+.texto { white-space: pre-wrap; overflow-wrap: anywhere; font-size: 0.93rem; max-height: 420px; overflow: auto; background: var(--surface-2); border-radius: 6px; padding: 10px 12px; }
+.kv { display: grid; grid-template-columns: max-content 1fr; gap: 3px 12px; font-size: 0.88rem; margin: 0; }
+.kv dt { color: var(--fg-muted); } .kv dd { margin: 0; overflow-wrap: anywhere; } .kv a { color: var(--accent); }
+.empty { text-align: center; color: var(--fg-muted); padding: 40px 16px; border: 1px dashed var(--line); border-radius: 8px; }
+.toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(16px + env(safe-area-inset-bottom, 0px)); background: var(--fg); color: var(--bg); padding: 8px 14px; border-radius: 6px; font-size: 0.9rem; }
+.foot { margin-top: 28px; color: var(--fg-muted); font-size: 0.82rem; max-width: 70ch; }
+[hidden] { display: none !important; }
+@media (max-width: 640px) { .item summary { grid-template-columns: 1fr; } .when { display: flex; gap: 10px; flex-wrap: wrap; } }
+@media (prefers-reduced-motion: no-preference) { .item summary { transition: background 0.12s; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <div class="eyebrow">Diário de Justiça Eletrônico Nacional · consulta pública</div>
+      <h1>Radar DJEN Oquendo</h1>
+      <p class="sub">Comunicações publicadas para os advogados do escritório, em todos os tribunais.</p>
+    </div>
+    <div class="actions">
+      <button class="ghost" id="btn-copy" type="button" title="Copia a tabela filtrada em formato CSV">Copiar CSV</button>
+      <button class="ghost" id="btn-portal" type="button" title="Abre a mesma pesquisa no portal oficial">Abrir no portal</button>
+    </div>
+  </header>
+
+  <section class="panel" aria-label="Filtros">
+    <div class="advs" id="advs"></div>
+    <div class="row">
+      <div class="field"><label for="de">Disponibilizado de</label><input type="date" id="de"></div>
+      <div class="field"><label for="ate">até</label><input type="date" id="ate"></div>
+      <div class="field"><label>Atalhos</label>
+        <div class="quick">
+          <button type="button" data-days="0">Hoje</button>
+          <button type="button" data-days="1">Ontem e hoje</button>
+          <button type="button" data-days="7">7 dias</button>
+          <button type="button" data-days="30">30 dias</button>
+        </div>
+      </div>
+      <div class="field" style="margin-left:auto"><label>&nbsp;</label><button class="primary" id="btn-go" type="button">Consultar DJEN ao vivo</button></div>
+    </div>
+    <div class="row">
+      <div class="field" style="flex:1 1 260px"><label for="q">Buscar no resultado</label><input type="search" id="q" placeholder="processo, órgão, tipo, trecho do texto"></div>
+      <div class="field"><label for="trib">Tribunal</label><select id="trib"><option value="">Todos</option></select></div>
+      <div class="field"><label for="tipo">Tipo</label><select id="tipo"><option value="">Todos</option></select></div>
+      <div class="field"><label for="ord">Ordenar</label><select id="ord"><option value="desc">Mais recentes</option><option value="asc">Mais antigas</option><option value="trib">Tribunal</option></select></div>
+    </div>
+    <div class="status" id="status"><span class="pill"></span><span id="status-text">Carregando a coleta diária…</span></div>
+  </section>
+
+  <section class="summary" id="summary" aria-label="Resumo por advogado"></section>
+
+  <div class="toolbar"><span id="count"></span><span id="updated"></span></div>
+  <div class="list" id="list"></div>
+  <div class="empty" id="empty" hidden>Nenhuma comunicação encontrada para os filtros escolhidos.</div>
+
+  <p class="foot">Fonte: API pública do DJEN (comunicaapi.pje.jus.br), a mesma que alimenta o portal comunica.pje.jus.br. A coleta diária roda nos dias úteis pela manhã; o botão "Consultar DJEN ao vivo" busca direto na API para o período escolhido. Esta consulta é auxiliar e não substitui a intimação eletrônica nem o controle de prazos pelo Domicílio Judicial Eletrônico. O prazo conta a partir do primeiro dia útil seguinte à disponibilização.</p>
+</div>
+
+<script>
+(() => {
+  const API = "https://comunicaapi.pje.jus.br/api/v1/comunicacao";
+  const PORTAL = "https://comunica.pje.jus.br/consulta";
+  const CORES = { mauro: "var(--adv-1)", gabriel: "var(--adv-2)", naila: "var(--adv-3)" };
+  let ADVOGADOS = [
+    { key: "mauro",   nome: "Mauro Oquendo do Rêgo Monteiro", oab: "5935",  uf: "PI" },
+    { key: "gabriel", nome: "Gabriel Ataíde da Silva",         oab: "22891", uf: "PI" },
+    { key: "naila",   nome: "Naila Fortes e Silva",            oab: "5815",  uf: "PI" },
+  ];
+  const $ = (id) => document.getElementById(id);
+  const fmtOab = (n, uf) => `${String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ".")}/${uf}`;
+  const iso = (d) => d.toISOString().slice(0, 10);
+  const today = () => { const d = new Date(); d.setHours(12); return d; };
+  const br = (s) => s ? s.split("-").reverse().join("/") : "";
+  const esc = (s) => String(s).replace(/[&<>"]/g, m => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[m]));
+  const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+
+  let ativos = new Set(ADVOGADOS.map(a => a.key));
+  let registros = [];
+  let vistos = new Set(), novos = new Set();
+  try { vistos = new Set(JSON.parse(localStorage.getItem("djen-vistos") || "[]")); } catch (e) {}
+  try { const f = JSON.parse(localStorage.getItem("djen-filtros") || "null"); if (f && Array.isArray(f.ativos) && f.ativos.length) ativos = new Set(f.ativos); } catch (e) {}
+
+  const pick = (o, ...keys) => { for (const k of keys) { if (o && o[k] != null && o[k] !== "") return o[k]; } return ""; };
+  const limpar = (t) => String(t).replace(/<[^>]+>/g, " ").replace(/[ \t]+\n/g, "\n").replace(/\n{3,}/g, "\n\n").trim();
+  // Normaliza um item bruto da API (grafias alternativas de campos incluídas).
+  const norm = (c) => {
+    const advs = (pick(c, "destinatarioadvogados", "destinatarioAdvogados", "advogados") || []).map(d => d.advogado || d)
+      .map(a => ({ nome: pick(a, "nome", "nomeAdvogado"), oab: String(pick(a, "numero_oab", "numeroOab", "oab")), uf: pick(a, "uf_oab", "ufOab", "uf") }));
+    const data = String(pick(c, "data_disponibilizacao", "datadisponibilizacao", "dataDisponibilizacao")).slice(0, 10);
+    return {
+      id: String(pick(c, "id", "hash") || (data + pick(c, "numero_processo") + String(pick(c, "texto")).slice(0, 60))),
+      data, tribunal: pick(c, "siglaTribunal", "sigla_tribunal", "tribunal"),
+      tipo: pick(c, "tipoComunicacao", "tipo_comunicacao", "tipoDocumento"),
+      orgao: pick(c, "nomeOrgao", "nome_orgao", "orgao"),
+      processo: pick(c, "numeroprocessocommascara", "numero_processo_mascara", "numero_processo", "numeroProcesso"),
+      classe: pick(c, "nomeClasse", "nome_classe"), meio: pick(c, "meiocompleto", "meio"),
+      texto: limpar(pick(c, "texto", "conteudo")), link: pick(c, "link"), advs,
+      partes: (pick(c, "destinatarios") || []).map(d => `${pick(d, "nome")}${d.polo ? " (" + d.polo + ")" : ""}`),
+      match: new Set(),
+    };
+  };
+  // Converte um registro já normalizado pelo coletor (match como array).
+  const doColetor = (c) => ({ ...c, texto: limpar(c.texto || ""), match: new Set(c.match || []), advs: c.advs || [], partes: c.partes || [] });
+
+  const setStatus = (cls, html) => { $("status").className = "status " + cls; $("status-text").innerHTML = html; };
+
+  async function carregarColeta() {
+    const de = $("de").value, ate = $("ate").value;
+    try {
+      const [d, m] = await Promise.all([
+        fetch("data/comunicacoes.json", { cache: "no-store" }).then(r => r.ok ? r.json() : null),
+        fetch("data/meta.json", { cache: "no-store" }).then(r => r.ok ? r.json() : null).catch(() => null),
+      ]);
+      if (!d) throw new Error("arquivo de dados ainda não gerado");
+      if (Array.isArray(d.advogados) && d.advogados.length) { ADVOGADOS = d.advogados; montarChips(); }
+      const todos = (d.comunicacoes || []).map(doColetor);
+      registros = todos.filter(c => c.data >= de && c.data <= ate);
+      marcarNovos();
+      const quando = m && m.atualizado_em ? new Date(m.atualizado_em) : null;
+      $("updated").textContent = quando ? "Coleta diária de " + quando.toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" }) : "";
+      setStatus("ok", `${registros.length} comunicação(ões) na coleta diária entre ${br(de)} e ${br(ate)}${novos.size ? `, ${novos.size} nova(s) desde a última visita neste navegador` : ""}. Para outro período ou dados mais recentes, use a consulta ao vivo.${m && m.erros && m.erros.length ? ` <strong>Última coleta com erro:</strong> ${esc(m.erros.join("; "))}` : ""}`);
+      preencherSelects(); render();
+    } catch (e) {
+      setStatus("warn", `A coleta diária ainda não está disponível (${esc(e.message || e)}). Use "Consultar DJEN ao vivo".`);
+      render();
+    }
+  }
+
+  function marcarNovos() {
+    novos = new Set(registros.filter(c => !vistos.has(c.id)).map(c => c.id));
+    try { localStorage.setItem("djen-vistos", JSON.stringify([...new Set([...vistos, ...registros.map(c => c.id)])].slice(-5000))); } catch (e) {}
+  }
+
+  async function buscarAdvogado(adv, de, ate) {
+    const out = []; let pagina = 1; const por = 100;
+    while (true) {
+      const u = new URL(API);
+      u.search = new URLSearchParams({ numeroOab: adv.oab, ufOab: adv.uf, dataDisponibilizacaoInicio: de, dataDisponibilizacaoFim: ate, pagina, itensPorPagina: por });
+      const r = await fetch(u, { headers: { Accept: "application/json" } });
+      if (!r.ok) throw new Error(`HTTP ${r.status} ao consultar ${adv.nome}`);
+      const j = await r.json();
+      const items = j.items || j.content || j.data || (Array.isArray(j) ? j : []);
+      out.push(...items);
+      const total = Number(j.count ?? j.total ?? j.totalElements ?? out.length);
+      if (items.length < por || out.length >= total) break;
+      pagina++; await sleep(700);
+    }
+    return out;
+  }
+
+  async function consultarAoVivo() {
+    const de = $("de").value, ate = $("ate").value;
+    if (!de || !ate) { setStatus("err", "Informe as duas datas."); return; }
+    if (de > ate) { setStatus("err", "A data inicial é posterior à final."); return; }
+    const alvo = ADVOGADOS.filter(a => ativos.has(a.key));
+    if (!alvo.length) { setStatus("err", "Selecione ao menos um advogado."); return; }
+    $("btn-go").disabled = true;
+    const mapa = new Map();
+    try {
+      for (const adv of alvo) {
+        setStatus("busy", `Consultando ${esc(adv.nome)} no DJEN…`);
+        for (const b of await buscarAdvogado(adv, de, ate)) {
+          const c = norm(b); const prev = mapa.get(c.id) || c; prev.match.add(adv.key); mapa.set(c.id, prev);
+        }
+        await sleep(400);
+      }
+      registros = [...mapa.values()]; marcarNovos();
+      try { localStorage.setItem("djen-filtros", JSON.stringify({ ativos: [...ativos] })); } catch (e) {}
+      $("updated").textContent = "Consulta ao vivo às " + new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+      setStatus("ok", `${registros.length} comunicação(ões) no DJEN entre ${br(de)} e ${br(ate)}${novos.size ? `, ${novos.size} nova(s) desde a última visita neste navegador` : ""}.`);
+      preencherSelects(); render();
+    } catch (e) {
+      setStatus("err", `Não foi possível ler a API do DJEN (<code>${esc(e.message || e)}</code>). A coleta diária continua disponível recarregando a página, ou use a <a href="${linkPortal(alvo[0], de, ate)}" target="_blank" rel="noopener">mesma pesquisa no portal oficial</a>.`);
+    } finally { $("btn-go").disabled = false; }
+  }
+
+  const linkPortal = (adv, de, ate) => `${PORTAL}?${new URLSearchParams({ numeroOab: adv.oab, ufOab: adv.uf, dataDisponibilizacaoInicio: de, dataDisponibilizacaoFim: ate })}`;
+
+  function preencherSelects() {
+    const fill = (id, vals) => { const s = $(id); const cur = s.value; s.innerHTML = '<option value="">Todos</option>' + [...new Set(vals.filter(Boolean))].sort().map(v => `<option>${esc(v)}</option>`).join(""); s.value = [...s.options].some(o => o.value === cur) ? cur : ""; };
+    fill("trib", registros.map(c => c.tribunal)); fill("tipo", registros.map(c => c.tipo));
+  }
+
+  function filtrados() {
+    const q = $("q").value.trim().toLowerCase(), t = $("trib").value, tp = $("tipo").value, ord = $("ord").value;
+    const r = registros.filter(c => [...c.match].some(k => ativos.has(k)))
+      .filter(c => !t || c.tribunal === t).filter(c => !tp || c.tipo === tp)
+      .filter(c => !q || [c.processo, c.orgao, c.tipo, c.texto, c.classe, c.tribunal, ...c.partes].join(" ").toLowerCase().includes(q));
+    r.sort((a, b) => ord === "asc" ? a.data.localeCompare(b.data) : ord === "trib" ? (a.tribunal + a.data).localeCompare(b.tribunal + b.data) : b.data.localeCompare(a.data));
+    return r;
+  }
+
+  function render() {
+    const r = filtrados();
+    $("summary").innerHTML = ADVOGADOS.filter(a => ativos.has(a.key)).map(a => {
+      const n = r.filter(c => c.match.has(a.key)).length, nn = r.filter(c => c.match.has(a.key) && novos.has(c.id)).length;
+      return `<div class="sum" style="--c:${CORES[a.key] || "var(--accent)"}"><span class="n">${n}</span><span class="name">${esc(a.nome)}</span><span class="meta">OAB ${fmtOab(a.oab, a.uf)}${nn ? ` · ${nn} nova(s)` : ""}</span></div>`;
+    }).join("");
+    $("count").textContent = registros.length ? `${r.length} de ${registros.length} comunicações exibidas` : "";
+    $("empty").hidden = !(registros.length && !r.length);
+    const soNum = (s) => String(s).replace(/\D/g, "").replace(/^0+/, "");
+    $("list").innerHTML = r.map(c => {
+      const tags = ADVOGADOS.filter(a => c.match.has(a.key)).map(a => `<span class="tag" style="--c:${CORES[a.key] || "var(--accent)"}">${esc(a.nome.split(" ")[0])} ${esc(fmtOab(a.oab, a.uf))}</span>`).join("");
+      const outros = c.advs.filter(x => !ADVOGADOS.some(a => soNum(a.oab) === soNum(x.oab) && a.uf === x.uf)).map(x => `${x.nome} (OAB ${x.oab}/${x.uf})`);
+      return `<details class="item"><summary>
+        <div class="when"><span class="trib">${esc(c.tribunal || "—")}</span><span>${br(c.data)}</span></div>
+        <div class="main"><span class="proc">${esc(c.processo || "sem número")}</span><span class="tipo">${esc(c.tipo || "Comunicação")}</span><span class="orgao">${esc(c.orgao)}</span><div class="tags">${tags}</div></div>
+        ${novos.has(c.id) ? '<span class="new">Nova</span>' : ""}</summary>
+        <div class="body">
+          <dl class="kv">
+            ${c.classe ? `<dt>Classe</dt><dd>${esc(c.classe)}</dd>` : ""}
+            ${c.meio ? `<dt>Meio</dt><dd>${esc(c.meio)}</dd>` : ""}
+            ${c.partes.length ? `<dt>Partes</dt><dd>${esc(c.partes.join("; "))}</dd>` : ""}
+            ${outros.length ? `<dt>Outros advogados</dt><dd>${esc(outros.join("; "))}</dd>` : ""}
+            ${c.link ? `<dt>Íntegra</dt><dd><a href="${esc(c.link)}" target="_blank" rel="noopener">abrir no DJEN</a></dd>` : ""}
+          </dl>
+          <div class="texto">${esc(c.texto || "Sem texto na resposta da API.")}</div>
+        </div></details>`;
+    }).join("");
+  }
+
+  function montarChips() {
+    $("advs").innerHTML = ADVOGADOS.map(a => `<button type="button" class="adv" data-key="${a.key}" aria-pressed="${ativos.has(a.key)}" style="--c:${CORES[a.key] || "var(--accent)"}"><span class="dot"></span><span><strong>${esc(a.nome)}</strong><br><span class="oab">OAB ${fmtOab(a.oab, a.uf)}</span></span></button>`).join("");
+  }
+  montarChips();
+  $("advs").addEventListener("click", (e) => { const b = e.target.closest(".adv"); if (!b) return; const k = b.dataset.key; ativos.has(k) ? ativos.delete(k) : ativos.add(k); b.setAttribute("aria-pressed", ativos.has(k)); try { localStorage.setItem("djen-filtros", JSON.stringify({ ativos: [...ativos] })); } catch (err) {} render(); });
+  document.querySelectorAll(".quick button").forEach(b => b.addEventListener("click", () => { const d = Number(b.dataset.days); const fim = today(); const ini = new Date(fim); ini.setDate(fim.getDate() - d); $("de").value = iso(ini); $("ate").value = iso(fim); carregarColeta(); }));
+  ["de", "ate"].forEach(id => $(id).addEventListener("change", carregarColeta));
+  $("btn-go").addEventListener("click", consultarAoVivo);
+  ["q", "trib", "tipo", "ord"].forEach(id => $(id).addEventListener("input", render));
+  $("btn-portal").addEventListener("click", () => { const a = ADVOGADOS.find(x => ativos.has(x.key)) || ADVOGADOS[0]; window.open(linkPortal(a, $("de").value, $("ate").value), "_blank", "noopener"); });
+  $("btn-copy").addEventListener("click", async () => {
+    const r = filtrados(); if (!r.length) { toast("Nada para copiar."); return; }
+    const cell = (v) => `"${String(v ?? "").replace(/"/g, '""')}"`;
+    const linhas = [["data", "tribunal", "processo", "tipo", "orgao", "advogado", "oab", "link"].join(";")];
+    for (const c of r) for (const a of ADVOGADOS.filter(a => c.match.has(a.key))) linhas.push([br(c.data), c.tribunal, c.processo, c.tipo, c.orgao, a.nome, fmtOab(a.oab, a.uf), c.link].map(cell).join(";"));
+    const csv = linhas.join("\n");
+    try { await navigator.clipboard.writeText(csv); toast(`${r.length} linha(s) copiadas em CSV.`); }
+    catch (e) { const ta = document.createElement("textarea"); ta.value = csv; document.body.appendChild(ta); ta.select(); toast("Selecione e copie com Ctrl+C."); setTimeout(() => ta.remove(), 15000); }
+  });
+  function toast(msg) { const t = document.createElement("div"); t.className = "toast"; t.textContent = msg; document.body.appendChild(t); setTimeout(() => t.remove(), 3500); }
+
+  // Estado inicial: últimos 7 dias a partir da coleta diária.
+  const fim = today(), ini = new Date(fim); ini.setDate(fim.getDate() - 7);
+  $("de").value = iso(ini); $("ate").value = iso(fim);
+  montarChips();
+  carregarColeta();
+})();
+</script>
+</body>
+</html>
