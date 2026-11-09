@@ -80,7 +80,11 @@ def normalizar(bruto: dict) -> dict:
 
 
 def _get(url: str, tentativas: int = 4) -> dict:
-    req = urllib.request.Request(url, headers={"Accept": "application/json", "User-Agent": "radar-djen/1.0"})
+    req = urllib.request.Request(url, headers={
+        "Accept": "application/json, text/plain, */*",
+        "Accept-Language": "pt-BR,pt;q=0.9",
+        "User-Agent": "RadarDJEN/1.0 (monitor de publicacoes do escritorio; GitHub Actions)",
+    })
     for i in range(tentativas):
         try:
             with urllib.request.urlopen(req, timeout=60) as r:
@@ -89,7 +93,12 @@ def _get(url: str, tentativas: int = 4) -> dict:
             if e.code in (429, 500, 502, 503, 504) and i < tentativas - 1:
                 time.sleep(2 ** (i + 1))
                 continue
-            raise
+            corpo = ""
+            try:
+                corpo = e.read(300).decode("utf-8", "replace").replace("\n", " ")
+            except Exception:  # noqa: BLE001
+                pass
+            raise RuntimeError(f"HTTP {e.code} {e.reason} {corpo}".strip()) from None
         except urllib.error.URLError:
             if i < tentativas - 1:
                 time.sleep(2 ** (i + 1))

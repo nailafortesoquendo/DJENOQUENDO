@@ -36,6 +36,7 @@ jobs:
           python-version: "3.12"
 
       - name: Consultar o DJEN
+        continue-on-error: true
         run: |
           if [ -n "${{ github.event.inputs.dias }}" ]; then
             python coletor.py --dias "${{ github.event.inputs.dias }}"
