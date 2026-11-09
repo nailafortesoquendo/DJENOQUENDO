@@ -8,6 +8,11 @@ Monitoramento diário das publicações do Diário de Justiça Eletrônico Nacio
 | Gabriel Ataíde da Silva | 22.891/PI |
 | Naila Fortes e Silva | 5.815/PI |
 
+## Estado atual
+
+- **Consulta ao vivo pelo navegador: funciona.** A página chama a API do DJEN diretamente e mostra as publicações do período escolhido.
+- **Coleta automática pelo GitHub Actions: bloqueada pelo DJEN.** A API responde 403 (CloudFront, "The request could not be satisfied") para os servidores do GitHub, que ficam fora do Brasil. O workflow continua publicando o site, mas o histórico em `site/data/` fica vazio. Para acumular histórico, rode `coletor.py` em um computador no Brasil e faça commit do JSON.
+
 ## Como funciona
 
 1. `coletor.py` consulta a API pública do DJEN (`comunicaapi.pje.jus.br`) para cada OAB e grava o acumulado em `site/data/comunicacoes.json` (mantém 120 dias).
