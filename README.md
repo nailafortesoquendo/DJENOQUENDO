@@ -8,25 +8,16 @@ Monitoramento diário das publicações do Diário de Justiça Eletrônico Nacio
 | Gabriel Ataíde da Silva | 22.891/PI |
 | Naila Fortes e Silva | 5.815/PI |
 
-## Estado atual
-
-- **Consulta ao vivo pelo navegador: funciona.** A página chama a API do DJEN diretamente e mostra as publicações do período escolhido.
-- **Coleta automática pelo GitHub Actions: bloqueada pelo DJEN.** A API responde 403 (CloudFront, "The request could not be satisfied") para os servidores do GitHub, que ficam fora do Brasil. O workflow continua publicando o site, mas o histórico em `site/data/` fica vazio. Para acumular histórico, rode `coletor.py` em um computador no Brasil e faça commit do JSON.
-
 ## Como funciona
 
 1. `coletor.py` consulta a API pública do DJEN (`comunicaapi.pje.jus.br`) para cada OAB e grava o acumulado em `site/data/comunicacoes.json` (mantém 120 dias).
-2. O workflow `.github/workflows/djen.yml` roda o coletor nos dias úteis às 9h40 de Brasília, faz commit do JSON e publica a pasta `site/` no GitHub Pages.
-3. `site/index.html` é a página pesquisável: lê a coleta diária e, se você pedir, consulta o DJEN ao vivo para qualquer período.
+2. O coletor roda **no computador do escritório**, de segunda a sexta às 9h, pelo `coletor_local.bat` agendado no Windows. Ele faz commit do JSON e envia ao GitHub. Instruções em [INSTALACAO_WINDOWS.md](INSTALACAO_WINDOWS.md).
+3. O workflow `.github/workflows/djen.yml` publica a pasta `site/` no GitHub Pages a cada envio.
+4. `site/index.html` é a página pesquisável: mostra a coleta diária e, a pedido, consulta o DJEN ao vivo pelo navegador.
 
-## Ativar o GitHub Pages (uma vez)
+Por que a coleta não roda no GitHub Actions: a API do DJEN responde 403 (CloudFront) para servidores fora do Brasil. Do navegador e de computadores no Brasil ela responde normalmente.
 
-1. No repositório, abra **Settings → Pages**.
-2. Em **Build and deployment → Source**, escolha **GitHub Actions**. Salve.
-3. Vá em **Actions → Radar DJEN → Run workflow**, informe `30` em "dias" e execute. A primeira rodada preenche o histórico e publica o site.
-
-Endereço do site depois da primeira publicação: `https://nailafortesoquendo.github.io/djenoquendo/`
-
+Site: https://nailafortesoquendo.github.io/DJENOQUENDO/
 
 ## Rodar localmente
 

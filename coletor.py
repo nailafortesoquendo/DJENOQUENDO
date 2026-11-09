@@ -7,7 +7,7 @@ e grava o resultado acumulado em site/data/comunicacoes.json, que a
 página em site lê.
 
 Uso:
-    python coletor.py                 # ontem e hoje
+    python coletor.py                 # últimos 3 dias
     python coletor.py 2026-11-01 2026-11-07
     python coletor.py --dias 30       # últimos 30 dias
 
@@ -145,7 +145,8 @@ def main(argv: list[str]) -> int:
     elif len(argv) >= 3 and argv[1][:1] != "-":
         inicio, fim = argv[1], argv[2]
     else:
-        inicio, fim = (hoje - timedelta(days=1)).isoformat(), hoje.isoformat()
+        # Padrão: últimos 3 dias. Cobre fim de semana e um dia em que o computador ficou desligado.
+        inicio, fim = (hoje - timedelta(days=3)).isoformat(), hoje.isoformat()
 
     acumulado = carregar_existentes()
     novos, erros = 0, []
