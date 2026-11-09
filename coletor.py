@@ -16,6 +16,7 @@ Sem dependências além da biblioteca padrão.
 from __future__ import annotations
 
 import json
+import re
 import sys
 import time
 import urllib.error
@@ -93,12 +94,14 @@ def _get(url: str, tentativas: int = 4) -> dict:
             if e.code in (429, 500, 502, 503, 504) and i < tentativas - 1:
                 time.sleep(2 ** (i + 1))
                 continue
-            corpo = ""
+            detalhe = ""
             try:
-                corpo = e.read(300).decode("utf-8", "replace").replace("\n", " ")
+                corpo = e.read(2000).decode("utf-8", "replace")
+                m = re.search(r"<title>(.*?)</title>", corpo, re.I | re.S)
+                detalhe = " ".join((m.group(1) if m else corpo[:120]).split())
             except Exception:  # noqa: BLE001
                 pass
-            raise RuntimeError(f"HTTP {e.code} {e.reason} {corpo}".strip()) from None
+            raise RuntimeError(f"HTTP {e.code} {e.reason}: {detalhe}".rstrip(": ")) from None
         except urllib.error.URLError:
             if i < tentativas - 1:
                 time.sleep(2 ** (i + 1))

@@ -203,7 +203,13 @@ button:disabled { opacity: 0.55; cursor: progress; }
       marcarNovos();
       const quando = m && m.atualizado_em ? new Date(m.atualizado_em) : null;
       $("updated").textContent = quando ? "Coleta diária de " + quando.toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" }) : "";
-      setStatus("ok", `${registros.length} comunicação(ões) na coleta diária entre ${br(de)} e ${br(ate)}${novos.size ? `, ${novos.size} nova(s) desde a última visita neste navegador` : ""}. Para outro período ou dados mais recentes, use a consulta ao vivo.${m && m.erros && m.erros.length ? ` <strong>Última coleta com erro:</strong> ${esc(m.erros.join("; "))}` : ""}`);
+      const falhou = m && Array.isArray(m.erros) && m.erros.length > 0;
+      if (falhou && registros.length === 0) {
+        setStatus("warn", `A coleta diária não conseguiu acessar o DJEN (${esc(m.erros[0].split(":").slice(1).join(":").trim() || m.erros[0])}). Consultando ao vivo a partir deste navegador…`);
+        render();
+        return consultarAoVivo();
+      }
+      setStatus("ok", `${registros.length} comunicação(ões) na coleta diária entre ${br(de)} e ${br(ate)}${novos.size ? `, ${novos.size} nova(s) desde a última visita neste navegador` : ""}. Para outro período ou dados mais recentes, use a consulta ao vivo.${falhou ? ` <strong>Última coleta com erro:</strong> ${esc(m.erros[0])}` : ""}`);
       preencherSelects(); render();
     } catch (e) {
       setStatus("warn", `A coleta diária ainda não está disponível (${esc(e.message || e)}). Use "Consultar DJEN ao vivo".`);
