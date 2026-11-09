@@ -1,35 +1,72 @@
 name: Radar DJEN
 
-# Publica a pasta site/ no GitHub Pages sempre que ela mudar.
-# A coleta no DJEN NÃO roda aqui: a API do DJEN responde 403 para servidores
-# fora do Brasil. Ela roda no computador do escritório (ver INSTALACAO_WINDOWS.md),
-# que faz commit dos dados em site/data/ e dispara esta publicação.
-
 on:
+  schedule:
+    # 09h40 de Brasília (12h40 UTC), segunda a sexta. O DJEN não publica em fins de semana.
+    - cron: "40 12 * * 1-5"
+  workflow_dispatch:
+    inputs:
+      dias:
+        description: "Quantos dias para trás coletar (padrão: ontem e hoje)"
+        required: false
+        default: ""
   push:
     branches: [Radar-de]
-    paths: ["site/**", ".github/workflows/djen.yml"]
-  workflow_dispatch:
+    paths: ["site/**", "coletor.py", ".github/workflows/djen.yml"]
 
 permissions:
-  contents: read
+  contents: write
   pages: write
   id-token: write
 
 concurrency:
-  group: radar-djen-pages
-  cancel-in-progress: true
+  group: radar-djen
+  cancel-in-progress: false
 
 jobs:
+  coletar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Consultar o DJEN
+        continue-on-error: true
+        run: |
+          if [ -n "${{ github.event.inputs.dias }}" ]; then
+            python coletor.py --dias "${{ github.event.inputs.dias }}"
+          else
+            python coletor.py
+          fi
+
+      - name: Gravar dados coletados
+        run: |
+          git config user.name "radar-djen[bot]"
+          git config user.email "radar-djen@users.noreply.github.com"
+          git add site/data
+          if git diff --cached --quiet; then
+            echo "Sem novidades no DJEN."
+          else
+            git commit -m "DJEN: coleta de $(date -u +%Y-%m-%d)"
+            git push
+          fi
+
+      - name: Preparar publicação
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
   publicar:
+    needs: coletar
     runs-on: ubuntu-latest
     environment:
       name: github-pages
       url: ${{ steps.deploy.outputs.page_url }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/upload-pages-artifact@v3
-        with:
-          path: site
       - id: deploy
         uses: actions/deploy-pages@v4
